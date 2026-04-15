@@ -26,6 +26,12 @@ let simTotalElapsed = 0;
 let isDwelling = false;
 let simSpeedMultiplier = 20; // Default to Fast Mode (20x)
 
+// Announcement debounce — prevents audio chain from stacking up during fast simulation
+let lastAnnouncedKey = null;     // Tracks last announced station+type key
+let lastAnnounceTime = 0;        // Timestamp of last announcement
+let lastAnnouncedSimIdx = -1;    // Tracks which simPathIdx we last announced for
+const ANNOUNCE_COOLDOWN = 3000;  // 3s minimum between real-GPS announcements
+
 // 1. UI INITIALIZATION
 window.onload = function () {
     // Initial Population of custom dropdowns
@@ -244,9 +250,17 @@ function startJourney() {
     renderScrollTrack();
     loadNextTarget(start);
 
-    // Force an immediate UI refresh for the start station
-    const startData = stationsDB[start];
-    updatePosition({ coords: { latitude: startData.lat, longitude: startData.lng } });
+    // Only use fake initial position in simulation —
+    // In real mode, real GPS handles start position. Faking it causes
+    // the train to appear to "move on its own" when user is at home.
+    if (isSimulating) {
+        const startData = stationsDB[start];
+        updatePosition({ coords: { latitude: startData.lat, longitude: startData.lng } });
+    }
+    // Reset announcement debounce for fresh journey
+    lastAnnouncedKey = null;
+    lastAnnounceTime = 0;
+    lastAnnouncedSimIdx = -1;
 
     // Activate DIY wake lock — keeps screen on for the whole journey
     enableWakeLock();
@@ -277,6 +291,7 @@ function stopJourney() {
     document.getElementById('live-status-bar').style.display = 'none';
     document.getElementById('live-status-bar').classList.remove('alarm-active');
     document.querySelector('.view-map-btn').style.display = 'flex';
+    document.getElementById('moving-train').style.display = ''; // Restore train for next journey
 }
 
 function renderActiveRoute(path, alerts) {
@@ -402,6 +417,8 @@ function startSimulation() {
     document.getElementById('sim-controls').style.display = 'block';
     document.getElementById('stop-btn').style.display = 'none'; 
     document.getElementById('telemetry-panel').style.display = 'block';
+    // Hide moving train emoji in test mode — user requested
+    document.getElementById('moving-train').style.display = 'none';
     
     const statusEl = document.getElementById('status-text');
     if (statusEl) statusEl.innerText = "AUTOPILOT: DEPARTING STATION...";
@@ -828,35 +845,57 @@ function updatePosition(position) {
     const navStationData = stationsDB[navStationName];
     const distToNavTarget = calculateDistance(userLat, userLng, navStationData.lat, navStationData.lng);
 
-    // Announcement Logic (Uses navStationName, not currentTarget)
+    // Announcement Logic — TWO SEPARATE MODES to prevent audio queue stacking
     const announcementEl = document.getElementById('announcement-text');
     const isAnnounceEvery = document.getElementById('announce-every')?.checked;
     const isAtDestination = (navTargetIndex === journeyPath.length - 1);
 
-    if (distToNavTarget < 500 && distToNavTarget > 100) {
-        const arrivalMsg = `Next Station: ${navStationName}`;
-        if (announcementEl.innerText !== arrivalMsg) {
-            announcementEl.innerText = arrivalMsg;
+    if (isSimulating) {
+        // ⭐ SIMULATION MODE: Announce ONCE per segment change — never on distance.
+        // This completely eliminates the audio queue stacking / glitching issue.
+        if (simPathIdx !== lastAnnouncedSimIdx) {
+            lastAnnouncedSimIdx = simPathIdx;
+            const nextIdx = Math.min(simPathIdx + 1, journeyPath.length - 1);
+            const nextStation = journeyPath[nextIdx];
+            announcementEl.innerText = `Next Station: ${nextStation}`;
             if (isAnnounceEvery) {
-                const specificAlert = alertsQueue.find(a => a.name === navStationName);
+                const specificAlert = alertsQueue.find(a => a.name === nextStation);
                 if (!specificAlert || specificAlert.alertMode === 'voice') {
-                    playSmartAnnouncement("next station", navStationName);
-                }
-            }
-        }
-    } else if (distToNavTarget <= 100) {
-        const arrivingMsg = isAtDestination ? `Arriving at Destination: ${navStationName}` : `Arriving at: ${navStationName}`;
-        if (announcementEl.innerText !== arrivingMsg) {
-            announcementEl.innerText = arrivingMsg;
-            if (isAnnounceEvery) {
-                const specificAlert = alertsQueue.find(a => a.name === navStationName);
-                if (!specificAlert || specificAlert.alertMode === 'voice') {
-                    playSmartAnnouncement("arriving", navStationName);
+                    playSmartAnnouncement("next station", nextStation);
                 }
             }
         }
     } else {
-        announcementEl.innerText = `Travelling towards ${journeyPath[journeyPath.length-1]} • Smart HMR tracking active`;
+        // 📍 REAL GPS MODE: Distance-based with 3s cooldown to prevent double-firing
+        const nowMs = Date.now();
+        if (distToNavTarget < 500 && distToNavTarget > 100) {
+            announcementEl.innerText = `Next Station: ${navStationName}`;
+            const key = navStationName + '_next';
+            if (isAnnounceEvery && key !== lastAnnouncedKey && (nowMs - lastAnnounceTime) > ANNOUNCE_COOLDOWN) {
+                const specificAlert = alertsQueue.find(a => a.name === navStationName);
+                if (!specificAlert || specificAlert.alertMode === 'voice') {
+                    lastAnnouncedKey = key;
+                    lastAnnounceTime = nowMs;
+                    playSmartAnnouncement("next station", navStationName);
+                }
+            }
+        } else if (distToNavTarget <= 100) {
+            const arrivingMsg = isAtDestination
+                ? `Arriving at Destination: ${navStationName}`
+                : `Arriving at: ${navStationName}`;
+            announcementEl.innerText = arrivingMsg;
+            const key = navStationName + '_arriving';
+            if (isAnnounceEvery && key !== lastAnnouncedKey && (nowMs - lastAnnounceTime) > ANNOUNCE_COOLDOWN) {
+                const specificAlert = alertsQueue.find(a => a.name === navStationName);
+                if (!specificAlert || specificAlert.alertMode === 'voice') {
+                    lastAnnouncedKey = key;
+                    lastAnnounceTime = nowMs;
+                    playSmartAnnouncement("arriving", navStationName);
+                }
+            }
+        } else {
+            announcementEl.innerText = `Travelling towards ${journeyPath[journeyPath.length-1]} • Smart HMR tracking active`;
+        }
     }
 
     // --- 3. ALARM TRACKING (Independent of nav) ---
