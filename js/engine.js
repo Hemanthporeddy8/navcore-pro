@@ -1237,4 +1237,31 @@ function handleError(err) {
     document.getElementById('current-station-text').innerText = "GPS Error. Check settings.";
 }
 
-// openMap() and closeMap() are defined in UTILITIES section above — duplicates removed.
+// openMap() and closeMap() are defined in UTILITIES section above — duplicates removed.
+
+// App Update Utility
+function checkForUpdates() {
+    const btn = document.getElementById('update-btn');
+    if (btn) btn.innerText = '⟳...';
+    
+    // Unregister service workers and clear caches
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+                registration.unregister();
+            }
+        });
+    }
+    
+    if ('caches' in window) {
+        caches.keys().then(function(names) {
+            for (let name of names)
+                caches.delete(name);
+        });
+    }
+    
+    // Complete the visual feedback and reload
+    setTimeout(() => {
+        window.location.reload(true);
+    }, 500);
+}

@@ -36,8 +36,13 @@
 
     <div class="app-container">
         <div class="header">
-            <h2>NavCore Pro</h2>
-            <p>Smart Hyderabad Metro Tracking</p>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h2>NavCore Pro</h2>
+                    <p>Smart Hyderabad Metro Tracking</p>
+                </div>
+                <button id="update-btn" onclick="checkForUpdates()" title="Check for Updates" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white; border-radius: 8px; padding: 6px 10px; font-size: 16px; cursor: pointer; backdrop-filter: blur(10px); transition: all 0.2s;">⟳</button>
+            </div>
         </div>
 
         <button class="view-map-btn" onclick="openMap()">🗺️ View Official Route Map</button>
