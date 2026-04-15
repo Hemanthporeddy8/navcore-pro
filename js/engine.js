@@ -749,9 +749,15 @@ function handleWakeVisibilityChange() {
     }
 }
 
+let lastRenderTime = 0;
+
 function updatePosition(position) {
     const userLat = position.coords.latitude;
     const userLng = position.coords.longitude;
+    
+    // Throttle rendering logic to max 2 frames per second to stop phone heating
+    const nowMs = Date.now();
+    const shouldRenderHeavyUI = (nowMs - lastRenderTime) > 500;
     
     // Speed Calculation
     if (lastUpdateTimestamp && lastLat && lastLng) {
@@ -1059,15 +1065,21 @@ function triggerAlarm(closestStation, distToTarget) {
         }, dwellTime);
     } else {
         // We cleared all ALERTS. But are we at the FINAL DESTINATION?
-        const finalDest = journeyPath[journeyPath.length - 1];
-        if (closestStation === finalDest || (distToTarget < 50)) {
+        const finalDest = document.getElementById('end-select').value;
+        if (currentTarget.data.name === finalDest) {
             finishJourney();
         } else {
             console.log("[NAV] Station Alert Cleared, continuing to final destination...");
-            // No more specific alerts, but keep tracking until the very end
-            currentTarget = { name: finalDest, type: "FINAL DESTINATION", data: stationsDB[finalDest] };
-            const statusEl = document.getElementById('status-text');
-            if (statusEl) statusEl.innerText = `DESTINATION: ${finalDest}`;
+            if (isSimulating) {
+                simPathIdx++; 
+                simProgress = 0;
+                loadNextTarget(lastTargetName);
+            } else {
+                loadNextTarget(lastTargetName);
+                if (!isSimulating) {
+                    watchId = navigator.geolocation.watchPosition(updatePosition, handleError, { enableHighAccuracy: true });
+                }
+            }
         }
     }
 }
