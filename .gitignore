@@ -1,0 +1,16 @@
+# Development & test files (not needed in production)
+server.py
+kaggle_validator.py
+test.html
+
+# Large archive files (source zips, not used by the app)
+assets/Final_Metro_Voices.zip
+assets/The_Complete_4.zip
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor folders
+.vscode/
+.gemini/

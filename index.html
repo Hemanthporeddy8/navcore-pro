@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NavCore Pro - HMR Smart Tracking</title>
+    <link rel="stylesheet" href="css/style.css?v=2.0">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+</head>
+
+<body>
+
+    <div class="map-modal" id="map-modal">
+        <!-- Existing Map Modal Content -->
+        <div class="map-modal-header">
+            <div class="header-left">
+                <span style="font-weight: bold;">Official Network Map</span>
+                <div class="zoom-controls">
+                    <button onclick="zoomMap(0.2)">➕</button>
+                    <button onclick="zoomMap(-0.2)">➖</button>
+                    <button onclick="resetZoom()">🔄</button>
+                    <button id="follow-toggle" onclick="toggleFollow()" title="Auto-Follow Train">📍</button>
+                </div>
+            </div>
+            <button class="close-map-btn" onclick="closeMap()">Close</button>
+        </div>
+        <div class="map-image-container" id="map-viewport">
+            <img src="assets/metro-map.png?v=2.0" alt="Map Loading..." id="map-img">
+            <div id="live-train-marker" class="live-train-marker">🚇</div>
+        </div>
+    </div>
+
+    <!-- SEARCH MODAL REMOVED FOR SPEED -->
+
+    <div class="app-container">
+        <div class="header">
+            <h2>NavCore Pro</h2>
+            <p>Smart Hyderabad Metro Tracking</p>
+        </div>
+
+        <button class="view-map-btn" onclick="openMap()">🗺️ View Official Route Map</button>
+
+        <div class="announcement-banner" id="announcement-banner">
+            <div class="marquee-text" id="announcement-text">Welcome to NavCore Pro • Smart HMR Tracking Active</div>
+        </div>
+
+        <div class="current-location-banner" id="current-location-banner">
+            <div class="icon">📍</div>
+            <div class="details">
+                <h4>You Are Currently Near</h4>
+                <p id="current-station-text">Locating...</p>
+            </div>
+        </div>
+
+        <div class="live-status-bar" id="live-status-bar">
+            <h3>Mission Status</h3>
+            <p id="status-text" style="font-size: 11px; color: #64748b; margin-top: -5px; margin-bottom: 10px; font-weight: 500;">Ready to board</p>
+            <div class="metrics-grid">
+                <div class="metric-item">
+                    <span class="label">Distance</span>
+                    <span id="distance-text" class="value">--</span>
+                </div>
+                <div class="metric-item">
+                    <span class="label">ETA</span>
+                    <span id="eta-text" class="value">--</span>
+                </div>
+                <div class="metric-item">
+                    <span class="label">Speed</span>
+                    <span id="speed-text" class="value">0 km/h</span>
+                </div>
+                <div class="metric-item">
+                    <span class="label">Phase</span>
+                    <span id="phase-text" class="value">Ready</span>
+                </div>
+            </div>
+            <div id="stop-timer-container" style="display: none; margin-top: 15px; background: #fff7ed; padding: 10px; border-radius: 8px; border: 1px dashed #f59e0b;">
+                <span style="font-size: 10px; font-weight: 800; color: #9a3412; text-transform: uppercase;">Dwell Timing: </span>
+                <span id="stop-timer" style="font-weight: 800; color: #c2410c;">--</span>
+            </div>
+        </div>
+
+            <div class="train-track-container" id="train-track-container">
+                <div class="scroll-track-viewport" id="track-viewport">
+                    <div class="scroll-track-content" id="track-content">
+                        <!-- Stations will be rendered here dynamically -->
+                        <div class="train-icon-scroll" id="moving-train">🚇</div>
+                    </div>
+                </div>
+            </div>
+
+
+        <div class="controls" id="setup-panel">
+            <div class="input-group">
+                <label>Boarding Station</label>
+                <div class="navcore-select" id="start-dropdown">
+                    <div class="select-selected" id="start-display" onclick="toggleDropdown('start')">Choose Boarding Station</div>
+                    <div class="select-menu" id="start-menu">
+                        <div class="menu-search-wrapper">
+                            <input type="text" class="menu-search-input" id="start-menu-search" placeholder="🔍 Type to filter..." oninput="filterDropdown('start')">
+                        </div>
+                        <div class="menu-items" id="start-items"></div>
+                    </div>
+                </div>
+                <input type="hidden" id="start-station">
+            </div>
+
+            <div class="input-group">
+                <label>Final Destination</label>
+                <div class="navcore-select" id="end-dropdown">
+                    <div class="select-selected" id="end-display" onclick="toggleDropdown('end')">Choose Final Destination</div>
+                    <div class="select-menu" id="end-menu">
+                        <div class="menu-search-wrapper">
+                            <input type="text" class="menu-search-input" id="end-menu-search" placeholder="🔍 Type to filter..." oninput="filterDropdown('end')">
+                        </div>
+                        <div class="menu-items" id="end-items"></div>
+                    </div>
+                </div>
+                <input type="hidden" id="end-station">
+            </div>
+
+
+
+            <div class="wakeup-group">
+                <label>🔔 Prepare to Wake up At</label>
+                <select id="wakeup-mode" onchange="updateWakeupOptions()">
+                    <option value="1">1 Station Before (Default)</option>
+                    <option value="2">2 Stations Before</option>
+                    <option value="3">3 Stations Before</option>
+                    <option value="custom">Custom Station</option>
+                </select>
+                <select id="wakeup-station" style="margin-top: 10px; display: none;"></select>
+                <div style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="announce-every" checked style="width: 18px; height: 18px; cursor: pointer;">
+                    <label for="announce-every" style="margin: 0; color: #92400e; font-size: 11px; text-transform: none;">Announce Every Station (Pro Mode)</label>
+                </div>
+            </div>
+
+
+            <div class="btn-group" style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn-primary" onclick="startJourney()" style="flex: 2;">Lock Route & Start</button>
+                <button class="btn-secondary" onclick="startSimulation()" style="flex: 1; background: #64748b;">🧪 Test</button>
+            </div>
+        </div>
+
+        <div id="sim-controls" style="display: none; background: #0f172a; color: white; padding: 15px; border-radius: 12px; margin: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div style="font-weight: 800; font-size: 11px; letter-spacing: 1px;">AUTOPILOT CONTROLS</div>
+                <button onclick="stopJourney()" style="background: #ef4444; border: none; color: white; padding: 4px 10px; border-radius: 5px; font-size: 10px; font-weight: bold; cursor: pointer;">EXIT TEST</button>
+            </div>
+            
+            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                <button class="btn-primary" onclick="skipToArrival()" style="background: #f59e0b; font-size: 12px; padding: 10px; flex: 1;">⏩ Skip to Arrival</button>
+                <button class="btn-primary" onclick="forceNextStation()" style="background: #3b82f6; font-size: 12px; padding: 10px; flex: 1;">⏭️ Next Station</button>
+            </div>
+
+            <input type="range" id="sim-scrubber" min="0" max="1000" value="0" oninput="scrubSimulation(this.value)" style="width: 100%; height: 6px; border-radius: 3px; accent-color: #3b82f6;">
+            <div style="display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; margin-top: 5px;">
+                <span>DEPARTURE</span>
+                <span id="scrub-percent">0%</span>
+                <span>ARRIVAL</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="waypoint-list" id="active-route"></div>
+            <button class="btn-primary" id="stop-btn" onclick="stopJourney()">End Journey</button>
+        </div>
+    </div>
+
+    <script src="js/database.js?v=2.0"></script>
+    <script src="js/engine.js?v=2.0"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker Registered'))
+                    .catch(err => console.log('SW Registration failed', err));
+            });
+        }
+    </script>
+    <!-- TELEMETRY DASHBOARD (DIAGNOSTIC) -->
+    <div id="telemetry-panel" style="display: none; position: fixed; bottom: 80px; left: 20px; right: 20px; background: rgba(15, 23, 42, 0.95); border: 1px solid #3b82f6; border-radius: 12px; padding: 15px; z-index: 10000; color: #60a5fa; font-family: 'Courier New', monospace; font-size: 11px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 8px; margin-bottom: 10px;">
+            <span style="font-weight: bold; color: #fff;">📡 TELEMETRY DEPLOYED</span>
+            <button onclick="document.getElementById('telemetry-panel').style.display='none'" style="background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 16px;">×</button>
+        </div>
+        <div id="telemetry-content">
+            Initializing sensors...
+        </div>
+    </div>
+</body>
+
+</html>
