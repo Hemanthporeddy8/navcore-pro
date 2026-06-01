@@ -1,0 +1,9 @@
+PLACEHOLDER FOR NAVCORE PRO APK.
+Please replace this file with your actual compiled Android APK.
+
+To generate your APK:
+1. Go to https://www.pwabuilder.com/
+2. Enter your live site URL: https://hemanthporeddy8.github.io/navcore-pro/
+3. Click "Build My App" and download the Android package (APK).
+4. Rename the downloaded .apk file to 'navcore.apk' and replace this placeholder file.
+5. Run your 'auto_deploy.py' script to deploy it live!

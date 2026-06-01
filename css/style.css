@@ -46,6 +46,12 @@ body {
     letter-spacing: 2px;
 }
 
+.top-buttons-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
 .view-map-btn {
     background: #e2e8f0;
     color: #0f172a;
@@ -60,10 +66,37 @@ body {
     justify-content: center;
     gap: 8px;
     transition: 0.2s;
+    border-bottom: 1px solid #cbd5e1;
 }
 
 .view-map-btn:active {
     background: #cbd5e1;
+}
+
+.download-apk-btn {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white !important;
+    text-decoration: none;
+    width: 100%;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.download-apk-btn:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    opacity: 0.95;
+}
+
+.download-apk-btn:active {
+    background: #1e40af;
 }
 
 .map-modal {

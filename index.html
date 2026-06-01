@@ -45,7 +45,10 @@
             </div>
         </div>
 
-        <button class="view-map-btn" onclick="openMap()">🗺️ View Official Route Map</button>
+        <div class="top-buttons-container">
+            <button class="view-map-btn" onclick="openMap()">🗺️ View Official Route Map</button>
+            <a href="navcore.apk" download class="download-apk-btn">🤖 Download Android App (APK)</a>
+        </div>
 
         <div class="announcement-banner" id="announcement-banner">
             <div class="marquee-text" id="announcement-text">Welcome to NavCore Pro • Smart HMR Tracking Active</div>
@@ -184,6 +187,13 @@
                     .catch(err => console.log('SW Registration failed', err));
             });
         }
+
+        // Suppress automatic PWA installation prompt ("Add to Home Screen" banner)
+        // since we are now distributing via direct APK download instead
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            console.log('PWA automatic installation prompt suppressed.');
+        });
     </script>
     <!-- TELEMETRY DASHBOARD (DIAGNOSTIC) -->
     <div id="telemetry-panel" style="display: none; position: fixed; bottom: 80px; left: 20px; right: 20px; background: rgba(15, 23, 42, 0.95); border: 1px solid #3b82f6; border-radius: 12px; padding: 15px; z-index: 10000; color: #60a5fa; font-family: 'Courier New', monospace; font-size: 11px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);">
